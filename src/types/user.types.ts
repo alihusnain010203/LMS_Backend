@@ -4,7 +4,8 @@ export interface IUserRegistration {
     email:string;
     avatar?:string;
 }
-export interface IActivationToken {
-    name:string;
+export interface IUserLogin {
+    password:string;
     email:string;
+
 }
