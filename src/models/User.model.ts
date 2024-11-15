@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import bcrypt from "bcryptjs";
 
-export interface IUser extends Document  {
+export interface IUser extends Document {
     name: string;
     email: string;
     password: string;
@@ -61,11 +61,10 @@ const userSchema = new Schema<IUser>({
             courseId: String
         },
     ],
-},{
+}, {
     timestamps: true,
 });
 
-// Hashing the password before saving the user
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) {
         next();
