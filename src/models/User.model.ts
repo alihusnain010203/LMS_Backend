@@ -41,11 +41,9 @@ const userSchema = new Schema<IUser>({
     avatar: {
         public_id: {
             type: String,
-            required: true,
         },
         url: {
             type: String,
-            required: true,
         },
     },
     role: {
@@ -76,4 +74,4 @@ userSchema.methods.comparePassword = async function (enteredPassword: string) {
     return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User: Model<IUser> = mongoose.model("User", userSchema); 
+export const User: Model<IUser> = mongoose.model("User", userSchema); 
