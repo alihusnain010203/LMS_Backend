@@ -108,25 +108,25 @@ const activationTokenCode = (user: IUserRegistration) => {
 export const userLogin = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { email, password }: IUserLogin = req.body;
-        
+
         if (!email || !password) {
             return next(new ErrorHandler("Please enter email and password", 400));
-          }
-    
-          const user = await User.findOne({ email }).select("+password");
-    
-          if (!user) {
-            return next(new ErrorHandler("Invalid email or password", 400));
-          }
-    
-          const isPasswordMatch = await user.comparePassword(password);
-          if (!isPasswordMatch) {
-            return next(new ErrorHandler("Invalid email or password", 400));
-          }
-     
-      
+        }
 
-        
+        const user = await User.findOne({ email }).select("+password");
+
+        if (!user) {
+            return next(new ErrorHandler("Invalid email or password", 400));
+        }
+
+        const isPasswordMatch = await user.comparePassword(password);
+        if (!isPasswordMatch) {
+            return next(new ErrorHandler("Invalid email or password", 400));
+        }
+
+
+
+
 
         const token = jwt.sign({
             email: email
@@ -142,7 +142,7 @@ export const userLogin = catchAsyncError(async (req: Request, res: Response, nex
         res.status(200).json({
             message: "Login Successfully",
         });
-    } catch (error :any) {
+    } catch (error: any) {
         next(new ErrorHandler(error.message, 400));
 
     }
@@ -151,15 +151,118 @@ export const userLogin = catchAsyncError(async (req: Request, res: Response, nex
 
 export const Logout = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        res.cookie("token", "", {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-        })
-        res.status(201).json({
-            message: "Successfully logged Out"
-        })
+        if (req.body.isVerfied) {
+            res.clearCookie("token");
+            res.status(200).json({
+                message: "Logout Successfully",
+            });
+        }
     } catch (error: any) {
         next(new ErrorHandler(error.message, 400));
     }
 })
+
+export const forgotPasswordMail = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email } = req.body;
+        const isEmailExist = await User.findOne({
+            email
+        });
+        if (!isEmailExist) {
+            return next({
+                message: "Email not found",
+                statusCode: 400,
+            });
+        }
+        const { resetPasswordToken, coder4digit } = resetPasswordTokenCode(email);
+        const mail = await sendMail(
+            {
+                email,
+                subject: "Reset Password",
+                template: "reset-password.ejs",
+                data: {
+                    coder4digit,
+                },
+            }
+        );
+        res.status(200).json({
+            success: true,
+            message: `Reset password code sent to ${email}`,
+            resetPasswordToken,
+        });
+
+    } catch (error: any) {
+        next(new ErrorHandler(error.message, 400));
+    }
+});
+
+export const forgotPassword = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { resetPasswordToken, code, password } = req.body;
+        const { email } = jwt.verify(resetPasswordToken, process.env.JWT_SECRET as string) as { email: string, code: number };
+        if (code !== Number(code)) {
+            return next({
+                message: "Invalid code",
+                statusCode: 400,
+            });
+        }
+        const user = await User.findOne({
+            email
+        });
+        if (!user) {
+            return next({
+                message: "Email not found",
+                statusCode: 400,
+            });
+        };
+        user.password = password;
+        await user.save();
+        res.status(200).json({
+            success: true,
+            message: "Password reset successfully",
+        });
+
+    } catch (error : any) {
+
+        next(new ErrorHandler(error.message, 400));
+    }
+});
+
+export const resetPassword = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email ,password } = req.body;
+        const isEmailExist = await User.findOne({
+            email
+        });
+        if (!isEmailExist) {
+            return next({
+                message: "Email not found",
+                statusCode: 400,
+            });
+        }
+        isEmailExist.password = password;
+        await isEmailExist.save();
+        res.status(200).json({
+            success: true,
+            message: "Password reset successfully",
+        });
+
+    } catch (error) {
+        next({
+            message: "Internal Server Error",
+            statusCode: 400,
+        })
+        
+    }
+});
+
+const resetPasswordTokenCode = (email: string) => {
+    const coder4digit = Math.floor(1000 + Math.random() * 9000);
+    const resetPasswordToken = jwt.sign({
+        email: email,
+        code: coder4digit,
+    }, process.env.JWT_SECRET as string, {
+        expiresIn: "5m"
+    });
+    return { resetPasswordToken, coder4digit };
+}

@@ -2,18 +2,29 @@ import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken"
 export const jwtVerifyUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email } = req.body;
-
         const token = req.cookies.token;
-
-        const decode = jwt.verify(token, process.env.JWT_SECRET as string) as { email: string, name: string, code: number, password: string, avatar: string };
-        if (decode.email !== email) {
+        if (!token) {
             return next({
                 message: "Bad Request",
                 statusCode: 400
             })
         }
-        req.body.isVerfied = true;
+
+        const decode = jwt.verify(token, process.env.JWT_SECRET as string) as { email: string, name: string, exp: number };
+
+        if (!decode) {
+            return next({
+                message: "Token is not valid",
+                statusCode: 400
+            })
+        }
+        if (decode.exp < Date.now()) {
+            return next({
+                message: "Token is expired",
+                statusCode: 400
+            })
+        }
+        req.body.email = decode.email;
         next()
     } catch (error) {
 
