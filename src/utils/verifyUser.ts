@@ -10,7 +10,7 @@ export const jwtVerifyUser = async (req: Request, res: Response, next: NextFunct
             })
         }
 
-        const decode = jwt.verify(token, process.env.JWT_SECRET as string) as { email: string, name: string, exp: number };
+        const decode = jwt.verify(token, process.env.JWT_SECRET as string) as { email: string, name: string, exp: number, role: string };
 
         if (!decode) {
             return next({
@@ -24,6 +24,7 @@ export const jwtVerifyUser = async (req: Request, res: Response, next: NextFunct
                 statusCode: 400
             })
         }
+        req.body.role = decode.role;
         req.body.email = decode.email;
         next()
     } catch (error) {

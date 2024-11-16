@@ -3,8 +3,6 @@ import { User } from "../models/user.model";
 import { IUserLogin, IUserRegistration } from "../types/user.types";
 import jwt from "jsonwebtoken";
 import { catchAsyncError } from "../middlewares/catchAsyncError";
-import bcrypt from "bcryptjs"
-
 import sendMail from "../utils/sendMail";
 import ErrorHandler from "../utils/ErrorHandler";
 
@@ -80,6 +78,7 @@ export const verifyUser = catchAsyncError(async (req: Request, res: Response, ne
             name,
             password,
             avatar,
+            isVerified: true,
         });
         res.status(200).json({
             success: true,
@@ -129,7 +128,8 @@ export const userLogin = catchAsyncError(async (req: Request, res: Response, nex
 
 
         const token = jwt.sign({
-            email: email
+            email: email,
+            role: user.role,
         }, process.env.JWT_SECRET as string);
 
         res.cookie("token", token, {
@@ -222,7 +222,7 @@ export const forgotPassword = catchAsyncError(async (req: Request, res: Response
             message: "Password reset successfully",
         });
 
-    } catch (error : any) {
+    } catch (error: any) {
 
         next(new ErrorHandler(error.message, 400));
     }
@@ -230,7 +230,7 @@ export const forgotPassword = catchAsyncError(async (req: Request, res: Response
 
 export const resetPassword = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { email ,password } = req.body;
+        const { email, password } = req.body;
         const isEmailExist = await User.findOne({
             email
         });
@@ -252,7 +252,152 @@ export const resetPassword = catchAsyncError(async (req: Request, res: Response,
             message: "Internal Server Error",
             statusCode: 400,
         })
-        
+
+    }
+});
+
+export const getUserProfile = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const user = await User.findOne({
+            email: req.body.email
+        });
+        if (!user) {
+            return next({
+                message: "User not found",
+                statusCode: 400,
+            });
+        }
+        res.status(200).json({
+            success: true,
+            user,
+        });
+    } catch (error) {
+        next({
+            message: "Internal Server Error",
+            statusCode: 400,
+        })
+    }
+});
+
+export const getAllUsers = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { role, email } = req.body;
+        if (role !== "admin" && email !== process.env.ADMIN_EMAIL) {
+            return next({
+                message: "You are not authorized to change role",
+                statusCode: 400,
+            });
+        }
+        const users = await User.find();
+        res.status(200).json({
+            success: true,
+            users,
+        });
+    } catch (error) {
+        next({
+            message: "Internal Server Error",
+            statusCode: 400,
+        })
+    }
+});
+
+export const deleteUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { role, email } = req.body;
+        if (role !== "admin" && email !== process.env.ADMIN_EMAIL) {
+            return next({
+                message: "You are not authorized to change role",
+                statusCode: 400,
+            });
+        }
+        const user = await User.findByIdAndDelete(req.params.id);
+        if (!user) {
+            return next({
+                message: "User not found",
+                statusCode: 400,
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User deleted successfully",
+        });
+    } catch (error) {
+        next({
+            message: "Internal Server Error",
+            statusCode: 400,
+        })
+    }
+});
+
+export const updateUser = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { name, email, avatar } = req.body;
+        const data: {
+            name?: string;
+            avatar?: string;
+        } = {};
+        if (name) {
+            data.name = name;
+        }
+        if (avatar) {
+            data.avatar = avatar;
+        }
+        const user = await User.findOneAndUpdate({
+            email: req.body.email
+        }, data)
+        if (!user) {
+            return next({
+                message: "User not found",
+                statusCode: 400,
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "User updated successfully",
+        });
+    }
+    catch (error) {
+        next({
+            message: "Internal Server Error",
+            statusCode: 400,
+        })
+    }
+}
+);
+
+export const changedRole = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { role, email } = req.body;
+        if (role !== "admin" && email !== process.env.ADMIN_EMAIL) {
+            return next({
+                message: "You are not authorized to change role",
+                statusCode: 400,
+            });
+        }
+        const data: {
+            role?: string;
+        } = {};
+        if (role) {
+            data.role = role;
+        }
+        const user = await User.findOneAndUpdate({
+            email: req.body.email
+        }, data)
+        if (!user) {
+            return next({
+                message: "User not found",
+                statusCode: 400,
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: "Role updated successfully",
+        });
+    } catch (error) {
+        next({
+            message: "Internal Server Error",
+            statusCode: 400,
+        })
     }
 });
 
