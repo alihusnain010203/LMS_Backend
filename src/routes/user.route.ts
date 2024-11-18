@@ -4,7 +4,7 @@ import { deleteUser, forgotPassword, forgotPasswordMail, getAllUsers, getUserPro
 import { jwtVerifyUser } from "../utils/verifyUser";
 
 const router = Router();
-
+//all user routes
 router.post("/registerUser", registerUser);
 
 router.post("/verifyUser", verifyUser);
