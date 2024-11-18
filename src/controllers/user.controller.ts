@@ -23,9 +23,6 @@ export const registerUser = catchAsyncError(async (req: Request, res: Response, 
 
         const { activationToken, coder4digit } = activationTokenCode({ email, name, password, avatar });
 
-
-
-
         const mail = await sendMail(
             {
                 email,

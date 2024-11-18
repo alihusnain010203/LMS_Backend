@@ -7,8 +7,6 @@ import connectDB from "./utils/db";
 import { errorHandle } from "./middlewares/error";
 import userRoute from "./routes/user.route";
 
-
-
 const app = express();
 
 dotenv.config();
