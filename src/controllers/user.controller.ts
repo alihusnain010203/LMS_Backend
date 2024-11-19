@@ -127,6 +127,7 @@ export const userLogin = catchAsyncError(async (req: Request, res: Response, nex
         const token = jwt.sign({
             email: email,
             role: user.role,
+            id: user._id,
         }, process.env.JWT_SECRET as string);
 
         res.cookie("token", token, {

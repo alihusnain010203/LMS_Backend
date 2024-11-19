@@ -18,7 +18,7 @@ const videoUploadQueue = new Queue('videoUpload', {
 // Process queue items one at a time
 videoUploadQueue.process(async (job) => {
     const { lectureVideo, options } = job.data;
-    
+
     return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.v2.uploader.upload_stream(
             options,
@@ -167,7 +167,7 @@ export const uploadLecture = catchAsyncError(async (req: Request, res: Response,
 // Optional: Get upload status
 export const getUploadStatus = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
     const { jobId } = req.params;
-    
+
     const job = await videoUploadQueue.getJob(jobId);
     if (!job) {
         return next(new ErrorHandler("Upload job not found", 404));
@@ -175,12 +175,65 @@ export const getUploadStatus = catchAsyncError(async (req: Request, res: Respons
 
     const state = await job.getState();
     const progress = await job.progress();
-    
+
     res.status(200).json({
         success: true,
         jobId,
         state,
         progress
     });
+});
+
+export const getCourse = catchAsyncError(async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { courseId } = req.params;
+        const { userId } = req.body;
+        const course = await Course.findById(courseId);
+        if (!course) {
+            return next(new ErrorHandler("Course not found", 404));
+        }
+        const isEnrolled = course.users.find((user) => user == userId);
+        if (!isEnrolled) {
+            res.status(200).json({
+                success: true,
+                course: {
+                    title: course.title,
+                    description: course.description,
+                    thumbnail: course.thumbnail,
+                    category: course.category,
+                    price: course.price,
+                    courseCreator: course.courseCreator,
+                    sections: course.sections,
+
+
+                },
+                isEnrolled: false
+            });
+        }
+        const courseSectionswithLectures = await Course.findById(courseId).populate("sections.lectures");
+
+        if(!courseSectionswithLectures){
+            return next(new ErrorHandler("Course not found", 404));
+        }
+
+        res.status(200).json({
+            success: true,
+            course: {
+                title: course.title,
+                description: course.description,
+                thumbnail: course.thumbnail,
+                category: course.category,
+                price: course.price,
+                courseCreator: course.courseCreator,
+                sections: courseSectionswithLectures.sections,
+            },
+            isEnrolled: true
+        });
+
+
+    } catch (error: any) {
+        next(new ErrorHandler(error.message, 500));
+
+    }
 });
 
