@@ -19,6 +19,7 @@ router.post("/forgotPassword", forgotPassword);
 
 router.post("/resetPassword", jwtVerifyUser, resetPassword);
 
+
 router.delete("/deleteUser", jwtVerifyUser, deleteUser);
 
 router.get("/getUsers", jwtVerifyUser, getAllUsers);
